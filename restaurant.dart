@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'customer.dart';
+import 'foodItem.dart';
 import 'manager.dart';
+import 'menu.dart';
 import 'options.dart';
 import 'order.dart';
 import 'reservation.dart';
@@ -9,24 +11,32 @@ import 'table.dart';
 
 class Kiosk {
   final List<String> availableOptions = [];
-  final Map<String, double> menuItems = {};
   final double taxRate = 0.08;
   final List<Table> table = [];
   final List<Reservation> reservation = [];
   final List<Order> order = [];
   final List<Manager> manager = [];
   final List<Customer> customer = [];
-  Customer? currentCustomer;
+  final List<Menu> menu = [];
+  late Order currentOrder;
+  Customer? currentCustomer =
+      Customer(customerId: 1, name: 'Mengthong', phoneNumber: '0898989');
+  late Reservation currentReservation = Reservation(
+      reservationId: 1,
+      customerId: 1,
+      reservationTime: DateTime.now(),
+      tableNumber: 1,
+      numberOfGuests: 4);
 
   Kiosk() {
-    _loadTable();
-    _loadOptions();
-    _welcomeMessage();
-    displayOptions();
     displayMenu();
+    // _loadTable();
+    // _loadOptions();
+    // _welcomeMessage();
+    // displayOptions();
   }
 
-  bool _CreateUser() {
+  void _CreateUser() {
     print("Enter your name:");
     String name = stdin.readLineSync().toString();
     print("Enter your phone number:");
@@ -34,31 +44,27 @@ class Kiosk {
     print("Enter your email (Optional):");
     String email = stdin.readLineSync().toString();
 
+    bool isSuccess;
+
     print("are you sure you want the info is correct");
     print("1. Yes\n2. No");
-
-    bool isSuccess =
-        int.parse(stdin.readLineSync().toString()) == 1 ? true : false;
-    currentCustomer = Customer(
-        customerId: this.customer.length + 1,
-        name: name,
-        phoneNumber: phoneNumber,
-        email: email);
-
+    isSuccess = int.parse(stdin.readLineSync().toString()) == 1 ? true : false;
     isSuccess
         ? {
+            currentCustomer = Customer(
+                customerId: this.customer.length + 1,
+                name: name,
+                phoneNumber: phoneNumber,
+                email: email),
             customer.add(currentCustomer!),
             print(
                 "User created successfully. Customer ID: ${customer[customer.length - 1]}")
           }
         : print("canceled");
-
-    return isSuccess;
   }
 
   void _userInput() {
     int option;
-    bool isValid = true;
     bool isStopProgramming = true;
 
     // loop to get the right option from customer
@@ -67,31 +73,34 @@ class Kiosk {
       for (int i = 0; i < availableOptions.length; i++) {
         print("${i + 1}. ${availableOptions[i]}");
       }
+
       print("Please select an option:");
       option = int.parse(stdin.readLineSync().toString());
+
       switch (option) {
         case 1:
-          isValid = !_CreateUser();
-          isValid == true ? print("again") : displayTable();
+          _CreateUser();
+          currentCustomer == null
+              ? print("[---Please try again--]")
+              : {
+                  displayTable(),
+                  displayMenu(),
+                };
+          // isValid = _CreateUser();
+
           break;
         case 2:
-          isValid = false;
           break;
         case 0:
           print("Thank you! Have a great day!");
+          isStopProgramming = false;
           break;
         default:
           print("$option is Invalid option. Please enter 1 or 2.");
-          isValid = true;
           break;
       }
     } while (isStopProgramming);
     //|
-  }
-
-  void display() {
-    print('Menu:');
-    menuItems.forEach((key, value) => print('$key: $value'));
   }
 
   void _welcomeMessage() {
@@ -115,8 +124,6 @@ class Kiosk {
     _userInput();
   }
 
-  void displayMenu() {}
-
   void _loadTable() {
     print('menu fetch');
     List<Table> tables = [];
@@ -136,6 +143,55 @@ class Kiosk {
     print('-- table reserve -- ');
     table.elementAt(tableNumber).isReserve = true;
     table.elementAt(tableNumber).isReady = false;
+  }
+
+  void displayMenu() {
+    List<Menu> cart = [];
+    int choice;
+    menu.addAll(foodItems);
+    // create new empty order
+    currentOrder = Order(
+        orderId: order.length + 1,
+        customerId: currentCustomer!.customerId,
+        orderTime: DateTime.now(),
+        tableNumber: currentReservation.tableNumber,
+        isPaid: false);
+
+    // display
+    print('[---Display Menu---]\n');
+    menu.asMap().forEach((key, value) {
+      print("[${key + 1}] ${value.name} - ${value.price.toString()}\$");
+    });
+
+    do {
+      print("Choose Any Item");
+      choice = int.parse(stdin.readLineSync().toString());
+      if (choice >= menu.length) {
+        print('please enter a right number!');
+      } else if (choice != 0) {
+        cart.add(foodItems[choice - 1]);
+        cart.forEach((element) {
+          print(element);
+        });
+      }
+    } while (choice != 0);
+    currentOrder.addItem(cart);
+    currentOrder.calculateAmount();
+    currentOrder.orderStatus = true;
+
+    String specialInstruction = '';
+    print('Do you have any special instructions? (please press y)');
+    if (stdin.readLineSync().toString() == "y") {
+      print('Please enter your special instructions:');
+      specialInstruction = stdin.readLineSync().toString();
+      currentOrder.specialInstructions = specialInstruction;
+    } else {
+      currentOrder.specialInstructions = "No special instructions";
+    }
+
+    print(currentOrder);
+
+    pay();
   }
 
   void displayTable() {
@@ -161,15 +217,74 @@ class Kiosk {
 
     int generateReservationId = reservation.length + 1;
 
+    currentReservation = Reservation(
+      reservationId: generateReservationId,
+      customerId: currentCustomer!.customerId,
+      reservationTime: DateTime.now(),
+      tableNumber: choice + 1,
+      numberOfGuests: numberofGuest + 1,
+    );
+    reservation.add(currentReservation);
 
-    reservation.add(Reservation(
-        reservationId: generateReservationId,
-        customerId: currentCustomer!.customerId,
-        reservationTime: DateTime.now(),
-        tableNumber: choice,
-        numberOfGuests: numberofGuest+1));
+    print(reservation.last);
+  }
 
-    print(reservation);
-    print(table.elementAt(choice).toString() + '\n');
+  void pay() {
+    bool isSuccess = false;
+    print('[---Pay to complete the order---]');
+    paymentMethod.values.asMap().forEach((key, value) {
+      print("[${key + 1}] - ${value}");
+    });
+
+    do {
+      print("Select one payment to continue: ");
+      int paymentChoice = int.parse(stdin.readLineSync().toString());
+
+      switch (paymentChoice) {
+        case 1:
+          print("Payment with cash: 50.00");
+          print("insert your money down below");
+          print('Thank you');
+          isSuccess = true;
+          currentOrder.isPaid = true;
+          currentOrder.paymentDate = DateTime.now();
+
+          break;
+        case 2:
+          print("Pay with ABA");
+          print("scan QR down below");
+          print("thank you");
+          currentOrder.isPaid = true;
+          currentOrder.paymentDate = DateTime.now();
+          currentReservation.order = currentOrder;
+          isSuccess = true;
+          break;
+        case 3:
+          print("Pay with ACELIDA");
+          print("scan QR down below");
+          print("thank you");
+          currentOrder.isPaid = true;
+          currentOrder.paymentDate = DateTime.now();
+          currentReservation.order = currentOrder;
+          isSuccess = true;
+          break;
+        case 4:
+          print("Payment with credit card");
+          print("insert your card");
+          print("thank you");
+          currentOrder.isPaid = true;
+          currentOrder.paymentDate = DateTime.now();
+          currentReservation.order = currentOrder;
+          isSuccess = true;
+          break;
+        case 0:
+          print("canceled");
+          isSuccess = true;
+          break;
+        default:
+          print("Invalid payment method");
+          break;
+      }
+    } while (!isSuccess);
   }
 }

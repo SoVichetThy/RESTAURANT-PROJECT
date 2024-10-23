@@ -1,9 +1,12 @@
+import 'order.dart';
+
 class Reservation {
   int reservationId;
   int customerId;
   DateTime reservationTime;
   int tableNumber;
   int numberOfGuests;
+  Order? order;
 
   Reservation({
     required this.reservationId,
