@@ -8,7 +8,8 @@ class Customer {
       required this.name,
       required this.phoneNumber,
       this.email});
-int? age;
+  int? age;
+  int? agee;
   @override
   String toString() {
     return 'Customer ID: $customerId, Name: $name, Phone Number: $phoneNumber, Email: $email';
