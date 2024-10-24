@@ -1,4 +1,5 @@
 import 'menu.dart';
+import 'reservation.dart';
 
 enum paymentMethod {
   cash("cash"),
@@ -27,21 +28,19 @@ class Order {
   DateTime orderTime;
   double totalAmount = 0;
   bool orderStatus = false;
-  int tableNumber;
   paymentMethod method = paymentMethod.cash;
   bool isPaid;
   DateTime? paymentDate;
   String specialInstructions;
-  List<int> reservationId;
+  Reservation? reservation;
 
   Order({
     required this.orderId,
     required this.customerId,
     required this.orderTime,
-    required this.tableNumber,
     required this.isPaid,
     this.specialInstructions = '',
-    this.reservationId = const [],
+    this.reservation,
   });
 
   void addItem(List<Menu> newItem) {
@@ -64,14 +63,14 @@ class Order {
 Order Details:
 - Order ID: $orderId
 - Customer ID: $customerId
-- Table Number: $tableNumber
+- Table Number: ${reservation?.tableNumber ?? 'Take Away'}
 - Order Time: ${orderTime.toString()}
 - Items: $itemList
 - Total Amount: \$${totalAmount.toStringAsFixed(2)}
 - Payment Method: ${method.label}
 - Order Status: ${orderStatus ? "Completed" : "Pending"}
 - Special Instructions: ${specialInstructions.isNotEmpty ? specialInstructions : "None"}
-- Reservation IDs: ${reservationId.isNotEmpty ? reservationId.join(", ") : "No Reservations"}
+- Reservation IDs: ${reservation?.reservationId ?? 'none'};
 - Is Paid: ${isPaid ? "Yes" : "No"}
   ''';
   }

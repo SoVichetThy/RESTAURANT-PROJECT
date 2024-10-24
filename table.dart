@@ -1,6 +1,6 @@
 class Table {
   final int tableNumber;
-  final int capacity;
+  int capacity;
   bool isReserve;
   bool isReady;
 
@@ -9,6 +9,13 @@ class Table {
       required this.capacity,
       required this.isReserve,
       required this.isReady});
+  void setRerserve() {
+    isReserve = !isReserve;
+  }
+
+  void setReady() {
+    isReady = !isReady;
+  }
 
   @override
   String toString() {
