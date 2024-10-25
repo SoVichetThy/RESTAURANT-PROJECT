@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'customer.dart';
@@ -8,6 +9,8 @@ import 'options.dart';
 import 'order.dart';
 import 'reservation.dart';
 import 'table.dart';
+
+part 'extender.dart';
 
 class Kiosk {
   final List<String> availableOptions = [];
@@ -26,8 +29,8 @@ class Kiosk {
   late Reservation currentReservation;
 
   Kiosk() {
-    _loadTable();
-    _loadOptions();
+    _loadTable(table);
+    _loadOptions(availableOptions);
     _welcomeMessage();
     _userInput();
   }
@@ -73,7 +76,7 @@ class Kiosk {
     }
   }
 
-  void _userInput() {
+  void _userInput() async {
     int option;
     bool isStopProgramming = true;
 
@@ -98,6 +101,7 @@ class Kiosk {
           case 2:
             isDineIn = false;
             _CreateUser();
+            print('success');
             displayMenu();
             break;
           case 3:
@@ -108,7 +112,7 @@ class Kiosk {
             username == "vichet" && password == "123"
                 ? {
                     print("[---Welcome Manager---]"),
-                    managerMode(),
+                    await managerMode(table, reservation, order, customer),
                   }
                 : print('Invalid username or password');
             break;
@@ -127,67 +131,27 @@ class Kiosk {
     //|
   }
 
-  void _printErrorMessage() {
-    print('------------');
-    print("invalid choice");
-    print('------------');
-  }
-
-  void _welcomeMessage() {
-    // ANSI escape codes for formatting
-    String bold = '\x1B[1m';
-    String reset = '\x1B[0m';
-    String yellow = '\x1B[33m';
-    String underline = '\x1B[4m';
-
-    print(
-        "${bold}${yellow}${underline}Hello! Welcome to our JoJoba Restaurants${reset}");
-  }
-
-  void _loadOptions() {
-    List<String> temp = options.values.map((e) => e.toString()).toList();
-    availableOptions.addAll(temp);
-    print('done loading options');
-  }
-
-  void _loadTable() {
-    print('menu fetch');
-    List<Table> tables = [];
-
-    for (int i = 1; i <= 20; i++) {
-      tables.add(Table(
-          tableNumber: i,
-          capacity: (i % 4) + 2, // Example: varying capacity between 2 and 5
-          isReserve: i % 2 == 0, // Example: alternate tables are reserved
-          isReady: i % 3 != 0 // Example: every third table is not ready
-          ));
-    }
-    table.addAll(tables);
-  }
-
-  void _reserveTable({required int tableNumber}) {
-    print('-- table reserve -- ');
-    table.elementAt(tableNumber).isReserve = true;
-    table.elementAt(tableNumber).isReady = false;
-  }
-
   void displayMenu() {
     List<Menu> cart = [];
     late int choice;
     menu.addAll(foodItems);
     // create new empty order
-    currentOrder = Order(
-        orderId: order.length + 1,
-        customerId: currentCustomer.customerId,
-        orderTime: DateTime.now(),
-        reservation: currentReservation,
-        isPaid: false);
+
+    isDineIn
+        ? currentOrder = Order(
+            orderId: order.length + 1,
+            customerId: currentCustomer.customerId,
+            orderTime: DateTime.now(),
+            reservation: currentReservation,
+            isPaid: false)
+        : currentOrder = Order(
+            orderId: order.length + 1,
+            customerId: currentCustomer.customerId,
+            orderTime: DateTime.now(),
+            isPaid: false);
 
     // display
-    print('[---Display Menu---]\n');
-    menu.asMap().forEach((key, value) {
-      print("[${key + 1}] ${value.name} - ${value.price.toString()}\$");
-    });
+    displayMenuItem(menu);
 
     do {
       try {
@@ -229,52 +193,9 @@ class Kiosk {
     pay();
   }
 
-  void displayTable() {
-    late int choice;
-    int numberofGuest;
-    print('---Table display---\n');
-    table.forEach((table) {
-      print(
-          "Table [${table.tableNumber}] - Capacity: ${table.capacity.toString().padRight(3)}, Reserve: ${table.isReserve.toString().padRight(3)}, Ready: ${table.isReady.toString().padRight(3)}");
-    });
-
-    do {
-      try {
-        choice = int.parse(stdin.readLineSync().toString()) - 1;
-        if (choice >= table.length) {
-          print('please enter a right number!');
-        }
-      } catch (e) {
-        _printErrorMessage();
-      }
-    } while (choice >= table.length);
-
-    print("please enter your customer number!");
-    numberofGuest = int.parse(stdin.readLineSync().toString()) - 1;
-    print("You have choose: Table [${choice + 1}]\n");
-    _reserveTable(tableNumber: choice);
-
-    int generateReservationId = reservation.length + 1;
-
-    currentReservation = Reservation(
-      reservationId: generateReservationId,
-      customerId: currentCustomer.customerId,
-      reservationTime: DateTime.now(),
-      tableNumber: choice + 1,
-      numberOfGuests: numberofGuest + 1,
-    );
-    reservation.add(currentReservation);
-
-    print(reservation.last);
-  }
-
   void pay() {
     bool isSuccess = false;
-    print('[---Pay to complete the order---]');
-    paymentMethod.values.asMap().forEach((key, value) {
-      print("[${key + 1}] - ${value}");
-    });
-
+    displayPaymentMethod();
     do {
       try {
         print("Select one payment to continue: ");
@@ -289,8 +210,8 @@ class Kiosk {
             currentOrder.isPaid = true;
             currentOrder.method = paymentMethod.values[paymentChoice];
             currentOrder.paymentDate = DateTime.now();
-            currentReservation.order = currentOrder;
-            currentOrder.reservation = currentReservation;
+            isDineIn ? currentReservation.order = currentOrder : null;
+            isDineIn ? currentOrder.reservation = currentReservation : null;
             break;
           case 2:
             print("Pay with ABA");
@@ -298,8 +219,8 @@ class Kiosk {
             print("thank you");
             currentOrder.isPaid = true;
             currentOrder.paymentDate = DateTime.now();
-            currentReservation.order = currentOrder;
-            currentOrder.reservation = currentReservation;
+            isDineIn ? currentReservation.order = currentOrder : null;
+            isDineIn ? currentOrder.reservation = currentReservation : null;
             isSuccess = true;
             break;
           case 3:
@@ -308,8 +229,8 @@ class Kiosk {
             print("thank you");
             currentOrder.isPaid = true;
             currentOrder.paymentDate = DateTime.now();
-            currentReservation.order = currentOrder;
-            currentOrder.reservation = currentReservation;
+            isDineIn ? currentReservation.order = currentOrder : null;
+            isDineIn ? currentOrder.reservation = currentReservation : null;
             isSuccess = true;
             break;
           case 4:
@@ -318,8 +239,8 @@ class Kiosk {
             print("thank you");
             currentOrder.isPaid = true;
             currentOrder.paymentDate = DateTime.now();
-            currentReservation.order = currentOrder;
-            currentOrder.reservation = currentReservation;
+            isDineIn ? currentReservation.order = currentOrder : null;
+            isDineIn ? currentOrder.reservation = currentReservation : null;
             isSuccess = true;
             break;
           case 0:
@@ -336,102 +257,67 @@ class Kiosk {
     } while (!isSuccess);
   }
 
-  void manageTable() {
-    print("Manage Table");
+  void displayTable() {
     late int choice;
+    int numberofGuest;
+    bool isSuccess = false;
+    print('---Table display---\n');
+
     do {
       try {
-        table.asMap().forEach((key, value) {
-          print('[${key + 1} $value]');
+        table.forEach((table) {
+          print(
+              "Table [${table.tableNumber}] - Capacity: ${table.capacity.toString().padRight(3)}, Reserve: ${table.isReserve.toString().padRight(3)}, Ready: ${table.isReady.toString().padRight(3)}");
         });
-        print('''
-      1. Add table
-      2. Delete table
-      3. Update table
-      0. Exit Table managment
-      ''');
-
-        choice = int.parse(stdin.readLineSync().toString());
-        switch (choice) {
-          case 1:
-            print("Enter Table Capacity");
-            int capacity = int.parse(stdin.readLineSync().toString());
-            Table newTable = Table(
-                capacity: capacity,
-                isReady: true,
-                isReserve: false,
-                tableNumber: table.length + 1);
-            table.add(newTable);
-            print('Table added successfully');
-            break;
-          case 2:
-            print("Enter Table Number to delete:");
-            int deleteTableNumber =
-                int.parse(stdin.readLineSync().toString()) - 1;
-            print('${table[deleteTableNumber]} will be deleted');
-            table.removeAt(deleteTableNumber);
-            break;
-          case 3:
-            print("Enter tableNumber to delete: ");
-            int updateTableNumber =
-                int.parse(stdin.readLineSync().toString()) - 1;
-            print("Enter new Table Capacity: ");
-            int newCapacity = int.parse(stdin.readLineSync().toString());
-            table[updateTableNumber].capacity = newCapacity;
-            print(table[updateTableNumber]);
-            break;
-          default:
+        choice = int.parse(stdin.readLineSync().toString()) - 1;
+        if (choice >= table.length && choice >= 0) {
+          print('please enter a right number!');
+        } else {
+          isSuccess = true;
         }
       } catch (e) {
         _printErrorMessage();
       }
-    } while (choice != 0);
+    } while (!isSuccess);
+
+    print("please enter your customer number!");
+    numberofGuest = int.parse(stdin.readLineSync().toString()) - 1;
+    print("You have choose: Table [${choice + 1}]\n");
+    reserveTable(table, tableNumber: choice);
+
+    if (isSuccess) {
+      int generateReservationId = reservation.length + 1;
+
+      currentReservation = Reservation(
+        reservationId: generateReservationId,
+        customerId: currentCustomer.customerId,
+        reservationTime: DateTime.now(),
+        tableNumber: choice + 1,
+        numberOfGuests: numberofGuest + 1,
+      );
+      reservation.add(currentReservation);
+
+      print(reservation.last);
+    }
   }
 
-  void managerMode() {
-    late int choice;
+  Future<void> showProgress(String message) async {
+    const List<String> spinner = ['|', '/', '-', '\\'];
+    const String cyan = '\x1B[36m'; // Cyan color for the spinner
+    const String reset = '\x1B[0m'; // Reset color
+    int i = 0;
 
-    do {
-      try {
-        print("Enter your chioce: ");
-        print('1. manage table');
-        print('2. View all reservation');
-        print('3. View all order');
-        print('4. View All Customer');
-        print('0. Exit');
-        choice = int.parse(stdin.readLineSync().toString());
-        switch (choice) {
-          case 1:
-            manageTable();
-            break;
-          case 2:
-            reservation.length >= 1
-                ? reservation.asMap().forEach((key, value) {
-                    print('[$key]-$value');
-                  })
-                : print('there isn\'t any reservation yet');
-            break;
-          case 3:
-            order.length >= 1
-                ? order.asMap().forEach((key, value) {
-                    print('[$key]-$value');
-                  })
-                : print('there is no order yet');
-            break;
-          case 4:
-            customer.length >= 1
-                ? customer.asMap().forEach((key, value) {
-                    print('[$key]-$value');
-                  })
-                : print('there is no customer yet');
-            break;
-          case 0:
-            print("Log out from admin");
-          default:
-        }
-      } catch (e) {
-        _printErrorMessage();
+    Timer.periodic(Duration(milliseconds: 200), (Timer timer) {
+      if (i >= 15) {
+        timer.cancel();
+        stdout.write('\r\n done!\n'); // Move to new line when done
+      } else {
+        // Print the icon in cyan color
+        stdout.write(
+            '\r ${cyan}${spinner[i % spinner.length]} $message$reset'); // Clear line and rewrite
+        i++;
       }
-    } while (choice != 0);
+    });
+    await Future.delayed(Duration(milliseconds: 200) * 20);
   }
 }
