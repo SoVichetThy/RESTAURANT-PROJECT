@@ -23,7 +23,7 @@ void _loadTable(List<Table> table) {
 
 void _printErrorMessage() {
   print('------------');
-  print("invalid choice");
+  print("⚠️ invalid choice");
   print('------------');
 }
 
@@ -47,40 +47,66 @@ void manageTable(List<Table> table) {
         print('[${key + 1} $value]');
       });
       print('''
-      1. Add table
-      2. Delete table
-      3. Update table
-      0. Exit Table managment
+[1] ➕ Add Table
+[2] ➖ Delete Table
+[3] ✏️  Update Table
+[0] 🚪 Exit Table Management
       ''');
+      stdout.write('Enter your choice: ');
 
       choice = int.parse(stdin.readLineSync().toString());
       switch (choice) {
         case 1:
-          print("Enter Table Capacity");
+          stdout.write("Enter Table Capacity (2-10): ");
           int capacity = int.parse(stdin.readLineSync().toString());
-          Table newTable = Table(
-              capacity: capacity,
-              isReady: true,
-              isReserve: false,
-              tableNumber: table.length + 1);
-          table.add(newTable);
-          print('Table added successfully');
+
+          if (capacity >= 2 && capacity <= 10) {
+            Table newTable = Table(
+                capacity: capacity,
+                isReady: true,
+                isReserve: false,
+                tableNumber: table.length + 1);
+            table.add(newTable);
+            print("✅ Table added successfully!");
+          } else {
+            print("⚠️ Capacity must be between 2 and 10.");
+          }
           break;
         case 2:
-          print("Enter Table Number to delete:");
+          stdout.write("Enter Table Number to delete: ");
           int deleteTableNumber =
               int.parse(stdin.readLineSync().toString()) - 1;
-          print('${table[deleteTableNumber]} will be deleted');
-          table.removeAt(deleteTableNumber);
-          break;
+
+          if (deleteTableNumber >= 0 && deleteTableNumber < table.length) {
+            print('Table ${table[deleteTableNumber]} will be deleted.');
+            table.removeAt(deleteTableNumber);
+            print("✅ Table deleted successfully!");
+          } else {
+            _printErrorMessage();
+          }
         case 3:
-          print("Enter tableNumber to delete: ");
-          int updateTableNumber =
-              int.parse(stdin.readLineSync().toString()) - 1;
-          print("Enter new Table Capacity: ");
-          int newCapacity = int.parse(stdin.readLineSync().toString());
-          table[updateTableNumber].capacity = newCapacity;
-          print(table[updateTableNumber]);
+          int updateOption = 0;
+          int updateTableNumber = 0;
+          bool isValid = true;
+          do {
+            try {
+              stdout.write("Enter tableNumber to Update: ");
+              updateTableNumber =
+                  int.parse(stdin.readLineSync().toString()) - 1;
+              isValid =
+                  (updateTableNumber > 0 && updateTableNumber <= table.length);
+              if (!(updateTableNumber > 0 &&
+                  updateTableNumber <= table.length)) {
+                throw Exception('');
+              }
+            } catch (e) {
+              _printErrorMessage();
+            }
+          } while (!isValid);
+          _updateTableOption(
+              updateOption: updateOption,
+              table: table,
+              updateTableNumber: updateTableNumber);
           break;
         default:
       }
@@ -88,6 +114,67 @@ void manageTable(List<Table> table) {
       _printErrorMessage();
     }
   } while (choice != 0);
+}
+
+void _updateTableOption(
+    {required int updateOption,
+    required List<Table> table,
+    required int updateTableNumber}) {
+  do {
+    try {
+      print('''
+👉🏻  Update Table ${table[updateTableNumber]} 👈🏻
+[1] Update Capacity
+[2] Toggle Reservation Status
+[3] Toggle Ready Status
+[4] Exit
+  ''');
+      updateOption = int.parse(stdin.readLineSync().toString());
+      switch (updateOption) {
+        case 1:
+          int newCapacity = 0;
+          do {
+            try {
+              stdout.write("Enter new Table Capacity(2-20): ");
+              newCapacity = int.parse(stdin.readLineSync().toString());
+              if ((newCapacity > 0 && newCapacity <= 20)) {
+                table[updateTableNumber].capacity = newCapacity;
+                print("✅ Success");
+              }
+              else{
+              }
+            } catch (e) {
+              _printErrorMessage();
+            }
+          } while (!(newCapacity > 0 && newCapacity <= 20));
+          break;
+        case 2:
+          if (table.length >= updateTableNumber && updateTableNumber >= 0) {
+            table[updateTableNumber].setRerserve();
+            print("✅ Success");
+          } else {
+            print('Invalid table number');
+          }
+          break;
+        case 3:
+          if (table.length >= updateTableNumber && updateTableNumber >= 0) {
+            table[updateTableNumber].setReady();
+            print("✅ Success");
+          } else {
+            print('Invalid table number');
+          }
+          break;
+        case 4:
+          print('Exit');
+          break;
+        default:
+          print('invalid');
+          break;
+      }
+    } catch (e) {
+      _printErrorMessage();
+    }
+  } while (updateOption != 4);
 }
 
 void displayMenuItem(List<Menu> menu) {
@@ -110,22 +197,22 @@ void reserveTable(List<Table> table, {required int tableNumber}) {
   table.elementAt(tableNumber).isReady = false;
 }
 
-Future<void> managerMode(List<Table> table, List<Reservation> reservation,
-    List<Order> order, List<Customer> customer) async {
+void managerMode(List<Table> table, List<Reservation> reservation,
+    List<Order> order, List<Customer> customer) {
   late int choice;
 
   do {
     try {
-      print("Enter your chioce: ");
       print('1. manage table');
       print('2. View all reservation');
       print('3. View all order');
       print('4. View All Customer');
       print('0. Exit');
+      stdout.write("Enter your chioce: ");
       choice = int.parse(stdin.readLineSync().toString());
       switch (choice) {
         case 1:
-          await showProgress("fetching table...");
+          showProgress("fetching table...");
           manageTable(table);
           break;
         case 2:

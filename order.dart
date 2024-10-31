@@ -26,7 +26,7 @@ class Order {
   int customerId;
   List<Menu> items = [];
   DateTime orderTime;
-  double totalAmount = 0;
+  double _totalAmount = 0;
   bool orderStatus = false;
   paymentMethod method = paymentMethod.cash;
   bool isPaid;
@@ -34,6 +34,7 @@ class Order {
   String specialInstructions;
   Reservation? reservation;
 
+  double get totalAmount => double.parse(_totalAmount.toStringAsFixed(2));
   Order({
     required this.orderId,
     required this.customerId,
@@ -52,7 +53,7 @@ class Order {
   }
 
   void calculateAmount() {
-    totalAmount = items.fold(
+    _totalAmount = items.fold(
         0, (previousValue, element) => previousValue + element.price);
   }
 
@@ -60,18 +61,20 @@ class Order {
   String toString() {
     String itemList = items.map((item) => item.name).join(", ");
     return '''
-Order Details:
-- Order ID: $orderId
-- Customer ID: $customerId
-- Table Number: ${reservation?.tableNumber ?? 'Take Away'}
-- Order Time: ${orderTime.toString()}
-- Items: $itemList
-- Total Amount: \$${totalAmount.toStringAsFixed(2)}
-- Payment Method: ${method.label}
-- Order Status: ${orderStatus ? "Completed" : "Pending"}
-- Special Instructions: ${specialInstructions.isNotEmpty ? specialInstructions : "None"}
-- Reservation IDs: ${reservation?.reservationId ?? 'none'};
-- Is Paid: ${isPaid ? "Yes" : "No"}
-  ''';
+📝 Order Details:
+─────────────────────────────────────
+🆔 Order ID           : $orderId
+👤 Customer ID        : $customerId
+🍽️  Table Number       : ${reservation?.tableNumber ?? 'Take Away'}
+🕒 Order Time         : ${orderTime.toString()}
+🍲 Items              : $itemList
+💵 Total Amount       : \$${totalAmount.toStringAsFixed(2)}
+💳 Payment Method     : ${method.label}
+📌 Order Status       : ${orderStatus ? "✅ Completed" : "⏳ Pending"}
+📝 Special Instructions: ${specialInstructions.isNotEmpty ? specialInstructions : "None"}
+📅 Reservation ID     : ${reservation?.reservationId ?? 'None'}
+💰 Is Paid            : ${isPaid ? "Yes" : "No"}
+─────────────────────────────────────
+''';
   }
 }

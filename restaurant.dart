@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'dart:io';
 
 import 'customer.dart';
@@ -40,6 +41,7 @@ class Kiosk {
     String name;
     String phoneNumber;
     String email;
+    String userAgree;
     try {
       do {
         print("Enter your name:");
@@ -49,34 +51,33 @@ class Kiosk {
         print("Enter your email (Optional):");
         email = stdin.readLineSync().toString();
         name != '' && phoneNumber != ''
-            ? isValid = true
+            ? {
+                print("are you sure you want the info is correct"),
+                print("1. Yes\n2. press any thing"),
+                userAgree = stdin.readLineSync().toString(),
+                userAgree == 'yes' || userAgree == 'Yes' || userAgree == '1'
+                    ? {
+                        currentCustomer = Customer(
+                            customerId: this.customer.length + 1,
+                            name: name,
+                            phoneNumber: phoneNumber,
+                            email: email),
+                        customer.add(currentCustomer),
+                        print(
+                            "User created successfully. Customer ID: ${customer[customer.length - 1]}"),
+                        isValid = true
+                      }
+                    : {print("canceled"), isValid = false}
+              }
             : print(
                 '---------------------\nPlease enter your info again\n---------------------');
       } while (!isValid);
-      bool isSuccess;
-
-      print("are you sure you want the info is correct");
-      print("1. Yes\n2. No");
-      isSuccess =
-          int.parse(stdin.readLineSync().toString()) == 1 ? true : false;
-      isSuccess
-          ? {
-              currentCustomer = Customer(
-                  customerId: this.customer.length + 1,
-                  name: name,
-                  phoneNumber: phoneNumber,
-                  email: email),
-              customer.add(currentCustomer),
-              print(
-                  "User created successfully. Customer ID: ${customer[customer.length - 1]}")
-            }
-          : print("canceled");
     } catch (e) {
-      print("invalide choice");
+      print('Error');
     }
   }
 
-  void _userInput() async {
+  void _userInput() {
     int option;
     bool isStopProgramming = true;
 
@@ -111,8 +112,10 @@ class Kiosk {
             String password = stdin.readLineSync().toString();
             username == "vichet" && password == "123"
                 ? {
-                    print("[---Welcome Manager---]"),
-                    await managerMode(table, reservation, order, customer),
+                    // _welcomeMessage(),
+                    print("----Option----\n"),
+                    // stdout.close(),
+                    managerMode(table, reservation, order, customer),
                   }
                 : print('Invalid username or password');
             break;
@@ -151,13 +154,14 @@ class Kiosk {
             isPaid: false);
 
     // display
-    displayMenuItem(menu);
-
+    bool isValidChoice = false;
     do {
+      displayMenuItem(menu);
       try {
         print("Choose Any Item");
         choice = int.parse(stdin.readLineSync().toString());
-        if (choice >= menu.length) {
+        isValidChoice = (choice <= menu.length && choice >= 0);
+        if (!isValidChoice) {
           print('please enter a right number!');
         } else if (choice != 0) {
           cart.add(foodItems[choice - 1]);
@@ -167,16 +171,20 @@ class Kiosk {
         }
       } catch (e) {
         _printErrorMessage();
+        print(e);
       }
-    } while (choice != 0);
+    } while (cart.isEmpty || choice != 0);
     currentOrder.addItem(cart);
+    cart.clear();
     currentOrder.calculateAmount();
     currentOrder.orderStatus = true;
 
-    String specialInstruction = '';
-    print('Do you have any special instructions? (please press y)');
+    late String specialInstruction;
+    print(
+        'Do you have any special instructions? (please press y or press anything to continue)');
     try {
       if (stdin.readLineSync().toString() == "y") {
+        stdout.close();
         print('Please enter your special instructions:');
         specialInstruction = stdin.readLineSync().toString();
         currentOrder.specialInstructions = specialInstruction;
@@ -188,13 +196,22 @@ class Kiosk {
     }
     // add order to history
     order.add(currentOrder);
-    print(currentOrder);
 
     pay();
   }
 
   void pay() {
-    bool isSuccess = false;
+    bool isSuccess = true;
+    bool _recordPayment({required bool isSuccess, required int paymentChoice}) {
+      isSuccess = true;
+      currentOrder.isPaid = true;
+      currentOrder.method = paymentMethod.values[paymentChoice - 1];
+      currentOrder.paymentDate = DateTime.now();
+      isDineIn ? currentReservation.order = currentOrder : null;
+      isDineIn ? currentOrder.reservation = currentReservation : null;
+      return isSuccess;
+    }
+
     displayPaymentMethod();
     do {
       try {
@@ -203,49 +220,44 @@ class Kiosk {
 
         switch (paymentChoice) {
           case 1:
-            print("Payment with cash: 50.00");
+            print("Payment with cash");
+            print('Total Amount: ${currentOrder.totalAmount}\$');
             print("insert your money down below");
             print('Thank you');
-            isSuccess = true;
-            currentOrder.isPaid = true;
-            currentOrder.method = paymentMethod.values[paymentChoice];
-            currentOrder.paymentDate = DateTime.now();
-            isDineIn ? currentReservation.order = currentOrder : null;
-            isDineIn ? currentOrder.reservation = currentReservation : null;
+            isSuccess = _recordPayment(
+                isSuccess: isSuccess, paymentChoice: paymentChoice);
+            print(currentOrder);
             break;
           case 2:
             print("Pay with ABA");
+            print('Total Amount: ${currentOrder.totalAmount}\$');
             print("scan QR down below");
             print("thank you");
-            currentOrder.isPaid = true;
-            currentOrder.paymentDate = DateTime.now();
-            isDineIn ? currentReservation.order = currentOrder : null;
-            isDineIn ? currentOrder.reservation = currentReservation : null;
-            isSuccess = true;
+            isSuccess = _recordPayment(
+                isSuccess: isSuccess, paymentChoice: paymentChoice);
+            print(currentOrder);
             break;
           case 3:
             print("Pay with ACELIDA");
+            print('Total Amount: ${currentOrder.totalAmount}\$');
             print("scan QR down below");
             print("thank you");
-            currentOrder.isPaid = true;
-            currentOrder.paymentDate = DateTime.now();
-            isDineIn ? currentReservation.order = currentOrder : null;
-            isDineIn ? currentOrder.reservation = currentReservation : null;
-            isSuccess = true;
+            isSuccess = _recordPayment(
+                isSuccess: isSuccess, paymentChoice: paymentChoice);
+            print(currentOrder);
             break;
           case 4:
             print("Payment with credit card");
+            print('Total Amount: ${currentOrder.totalAmount}\$');
             print("insert your card");
             print("thank you");
-            currentOrder.isPaid = true;
-            currentOrder.paymentDate = DateTime.now();
-            isDineIn ? currentReservation.order = currentOrder : null;
-            isDineIn ? currentOrder.reservation = currentReservation : null;
-            isSuccess = true;
+            isSuccess = _recordPayment(
+                isSuccess: isSuccess, paymentChoice: paymentChoice);
+            print(currentOrder);
             break;
           case 0:
             print("canceled");
-            isSuccess = true;
+            isSuccess = false;
             break;
           default:
             print("Invalid payment method");
@@ -259,7 +271,7 @@ class Kiosk {
 
   void displayTable() {
     late int choice;
-    int numberofGuest;
+    int numberofGuest = 0;
     bool isSuccess = false;
     print('---Table display---\n');
 
@@ -269,36 +281,43 @@ class Kiosk {
           print(
               "Table [${table.tableNumber}] - Capacity: ${table.capacity.toString().padRight(3)}, Reserve: ${table.isReserve.toString().padRight(3)}, Ready: ${table.isReady.toString().padRight(3)}");
         });
-        choice = int.parse(stdin.readLineSync().toString()) - 1;
-        if (choice >= table.length && choice >= 0) {
+        choice = int.parse(stdin.readLineSync().toString());
+        if (!(choice < table.length && choice >= 0)) {
           print('please enter a right number!');
         } else {
           isSuccess = true;
+          do {
+            print("How many of your member?!");
+            try {
+              numberofGuest = int.parse(stdin.readLineSync().toString());
+            } catch (e) {
+              print('\x1B[2J\x1B[0;0H');
+              print("you enter invalid number, please try AGAIN");
+            }
+          } while (!(numberofGuest >= 1));
+          print("You have choose: Table [${choice}]\n");
+          reserveTable(table, tableNumber: choice - 1);
+          int generateReservationId = reservation.length + 1;
+
+          currentReservation = Reservation(
+            reservationId: generateReservationId,
+            customerId: currentCustomer.customerId,
+            reservationTime: DateTime.now(),
+            tableNumber: choice,
+            numberOfGuests: numberofGuest,
+          );
+          reservation.add(currentReservation);
+
+          print('\x1B[2J\x1B[0;0H');
+          print(currentReservation);
+          stdout.write('Press enter to continue choosing your food...');
+          stdin.readLineSync();
+          stdout.close();
         }
       } catch (e) {
         _printErrorMessage();
       }
     } while (!isSuccess);
-
-    print("please enter your customer number!");
-    numberofGuest = int.parse(stdin.readLineSync().toString()) - 1;
-    print("You have choose: Table [${choice + 1}]\n");
-    reserveTable(table, tableNumber: choice);
-
-    if (isSuccess) {
-      int generateReservationId = reservation.length + 1;
-
-      currentReservation = Reservation(
-        reservationId: generateReservationId,
-        customerId: currentCustomer.customerId,
-        reservationTime: DateTime.now(),
-        tableNumber: choice + 1,
-        numberOfGuests: numberofGuest + 1,
-      );
-      reservation.add(currentReservation);
-
-      print(reservation.last);
-    }
   }
 
   Future<void> showProgress(String message) async {
