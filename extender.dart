@@ -1,9 +1,9 @@
-part of 'restaurant.dart';
+part of 'Kiosk.dart';
 
 void _loadOptions(availableOptions) {
   List<String> temp = options.values.map((e) => e.toString()).toList();
   availableOptions.addAll(temp);
-  print('done loading options');
+  print('🟢 Done loading');
 }
 
 void _loadTable(List<Table> table) {
@@ -23,7 +23,7 @@ void _loadTable(List<Table> table) {
 
 void _printErrorMessage() {
   print('------------');
-  print("⚠️ invalid choice");
+  print("❌ Invalid choice");
   print('------------');
 }
 
@@ -41,13 +41,11 @@ void _welcomeMessage() {
 void manageTable(List<Table> table) {
   print("Manage Table");
   late int choice;
+
   do {
     try {
-      table.asMap().forEach((key, value) {
-        print('[${key + 1} $value]');
-      });
       print('''
-[1] ➕ Add Table
+[1] ➕ Add Table 
 [2] ➖ Delete Table
 [3] ✏️  Update Table
 [0] 🚪 Exit Table Management
@@ -89,13 +87,16 @@ void manageTable(List<Table> table) {
           int updateTableNumber = 0;
           bool isValid = true;
           do {
+            table.asMap().forEach((key, value) {
+              print('[${key + 1} $value]');
+            });
             try {
               stdout.write("Enter tableNumber to Update: ");
               updateTableNumber =
                   int.parse(stdin.readLineSync().toString()) - 1;
               isValid =
-                  (updateTableNumber > 0 && updateTableNumber <= table.length);
-              if (!(updateTableNumber > 0 &&
+                  (updateTableNumber >= 0 && updateTableNumber <= table.length);
+              if (!(updateTableNumber >= 0 &&
                   updateTableNumber <= table.length)) {
                 throw Exception('');
               }
@@ -122,6 +123,7 @@ void _updateTableOption(
     required int updateTableNumber}) {
   do {
     try {
+      stdout.write('\x1B[2J\x1B[0;0H');
       print('''
 👉🏻  Update Table ${table[updateTableNumber]} 👈🏻
 [1] Update Capacity
@@ -140,9 +142,7 @@ void _updateTableOption(
               if ((newCapacity > 0 && newCapacity <= 20)) {
                 table[updateTableNumber].capacity = newCapacity;
                 print("✅ Success");
-              }
-              else{
-              }
+              } else {}
             } catch (e) {
               _printErrorMessage();
             }
@@ -153,7 +153,7 @@ void _updateTableOption(
             table[updateTableNumber].setRerserve();
             print("✅ Success");
           } else {
-            print('Invalid table number');
+            print('❌ Invalid table number');
           }
           break;
         case 3:
@@ -161,14 +161,14 @@ void _updateTableOption(
             table[updateTableNumber].setReady();
             print("✅ Success");
           } else {
-            print('Invalid table number');
+            print('❌ Invalid table number');
           }
           break;
         case 4:
           print('Exit');
           break;
         default:
-          print('invalid');
+          print('❌ Invalid');
           break;
       }
     } catch (e) {
@@ -182,6 +182,7 @@ void displayMenuItem(List<Menu> menu) {
   menu.asMap().forEach((key, value) {
     print("[${key + 1}] ${value.name} - ${value.price.toString()}\$");
   });
+  print("[0].Go to payment\n");
 }
 
 void displayPaymentMethod() {
@@ -192,7 +193,7 @@ void displayPaymentMethod() {
 }
 
 void reserveTable(List<Table> table, {required int tableNumber}) {
-  print('-- table reserve -- ');
+  print('--Table reserve-- ');
   table.elementAt(tableNumber).isReserve = true;
   table.elementAt(tableNumber).isReady = false;
 }
@@ -203,7 +204,7 @@ void managerMode(List<Table> table, List<Reservation> reservation,
 
   do {
     try {
-      print('1. manage table');
+      print('1. Manage table');
       print('2. View all reservation');
       print('3. View all order');
       print('4. View All Customer');
@@ -212,32 +213,31 @@ void managerMode(List<Table> table, List<Reservation> reservation,
       choice = int.parse(stdin.readLineSync().toString());
       switch (choice) {
         case 1:
-          showProgress("fetching table...");
           manageTable(table);
           break;
         case 2:
           reservation.length >= 1
               ? reservation.asMap().forEach((key, value) {
-                  print('[$key]-$value');
+                  print('\n[$key]-$value');
                 })
-              : print('there isn\'t any reservation yet');
+              : print('⚠️There isn\'t any reservation yet');
           break;
         case 3:
           order.length >= 1
               ? order.asMap().forEach((key, value) {
                   print('[$key]-$value');
                 })
-              : print('there is no order yet');
+              : print('⚠️There is no order yet');
           break;
         case 4:
           customer.length >= 1
               ? customer.asMap().forEach((key, value) {
-                  print('[$key]-$value');
+                  print('\n[$key]-$value');
                 })
-              : print('there is no customer yet');
+              : print('⚠️There is no customer yet');
           break;
         case 0:
-          print("Log out from admin");
+          print("Logout from admin");
         default:
       }
     } catch (e) {
@@ -258,7 +258,7 @@ Future<void> showProgress(String message) async {
   Timer.periodic(Duration(milliseconds: 200), (Timer timer) {
     if (i >= 15) {
       timer.cancel();
-      stdout.write('\r\n done!\n');
+      stdout.write('\r\n✅ Done!\n');
       completer.complete();
     } else {
       stdout.write('\r ${cyan}${spinner[i % spinner.length]} $message$reset');

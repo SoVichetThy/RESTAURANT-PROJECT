@@ -11,10 +11,13 @@ class Table {
       required this.isReady});
   void setRerserve() {
     isReserve = !isReserve;
+    isReady = false;
   }
 
   void setReady() {
     isReady = !isReady;
+    isReserve = false;
+
   }
 
   @override

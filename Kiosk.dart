@@ -2,14 +2,14 @@ import 'dart:async';
 
 import 'dart:io';
 
-import 'customer.dart';
+import 'model/customer.dart';
 import 'foodItem.dart';
-import 'manager.dart';
-import 'menu.dart';
-import 'options.dart';
-import 'order.dart';
-import 'reservation.dart';
-import 'table.dart';
+import 'model/manager.dart';
+import 'model/menu.dart';
+import 'enum/options.dart';
+import 'model/order.dart';
+import 'model/reservation.dart';
+import 'model/table.dart';
 
 part 'extender.dart';
 
@@ -30,6 +30,11 @@ class Kiosk {
   late Reservation currentReservation;
 
   Kiosk() {
+    loader();
+  }
+
+  void loader() async {
+    await showProgress("Loading...");
     _loadTable(table);
     _loadOptions(availableOptions);
     _welcomeMessage();
@@ -165,9 +170,10 @@ class Kiosk {
           print('please enter a right number!');
         } else if (choice != 0) {
           cart.add(foodItems[choice - 1]);
-          cart.forEach((element) {
-            print(element);
-          });
+          stdout.writeln("your have: ${cart.length} items");
+          // cart.forEach((element) {
+          //   print(element);
+          // });
         }
       } catch (e) {
         _printErrorMessage();
@@ -181,11 +187,10 @@ class Kiosk {
 
     late String specialInstruction;
     print(
-        'Do you have any special instructions? (please press y or press anything to continue)');
+        '📝 Do you have any special instructions? (please press y or press anything to continue)');
     try {
       if (stdin.readLineSync().toString() == "y") {
-        stdout.close();
-        print('Please enter your special instructions:');
+        print('🟢 Please enter your special instructions:');
         specialInstruction = stdin.readLineSync().toString();
         currentOrder.specialInstructions = specialInstruction;
       } else {
@@ -215,52 +220,52 @@ class Kiosk {
     displayPaymentMethod();
     do {
       try {
-        print("Select one payment to continue: ");
+        print("🟢 Select one payment to continue: ");
         int paymentChoice = int.parse(stdin.readLineSync().toString());
 
         switch (paymentChoice) {
           case 1:
             print("Payment with cash");
             print('Total Amount: ${currentOrder.totalAmount}\$');
-            print("insert your money down below");
-            print('Thank you');
+            print("💰 Insert your money down below");
+            print('Thank You ✨');
             isSuccess = _recordPayment(
                 isSuccess: isSuccess, paymentChoice: paymentChoice);
             print(currentOrder);
             break;
           case 2:
             print("Pay with ABA");
-            print('Total Amount: ${currentOrder.totalAmount}\$');
-            print("scan QR down below");
-            print("thank you");
+            print('💰 Total Amount: ${currentOrder.totalAmount}\$');
+            print(" Scan QR down below");
+            print("Thank You ✨");
             isSuccess = _recordPayment(
                 isSuccess: isSuccess, paymentChoice: paymentChoice);
             print(currentOrder);
             break;
           case 3:
             print("Pay with ACELIDA");
-            print('Total Amount: ${currentOrder.totalAmount}\$');
+            print('💰 Total Amount: ${currentOrder.totalAmount}\$');
             print("scan QR down below");
-            print("thank you");
+            print("Thank You ✨");
             isSuccess = _recordPayment(
                 isSuccess: isSuccess, paymentChoice: paymentChoice);
             print(currentOrder);
             break;
           case 4:
             print("Payment with credit card");
-            print('Total Amount: ${currentOrder.totalAmount}\$');
+            print('💰 Total Amount: ${currentOrder.totalAmount}\$');
             print("insert your card");
-            print("thank you");
+            print("Thank You ✨");
             isSuccess = _recordPayment(
                 isSuccess: isSuccess, paymentChoice: paymentChoice);
             print(currentOrder);
             break;
           case 0:
-            print("canceled");
+            print("❗️ Canceled ❗️");
             isSuccess = false;
             break;
           default:
-            print("Invalid payment method");
+            print("🚫 Invalid payment method");
             break;
         }
       } catch (e) {
@@ -278,21 +283,26 @@ class Kiosk {
     do {
       try {
         table.forEach((table) {
-          print(
-              "Table [${table.tableNumber}] - Capacity: ${table.capacity.toString().padRight(3)}, Reserve: ${table.isReserve.toString().padRight(3)}, Ready: ${table.isReady.toString().padRight(3)}");
+          if (table.isReady == true && table.isReserve == false)
+            print(
+                "Table [${table.tableNumber}] - Capacity: ${table.capacity.toString().padRight(3)}, Reserve: ${table.isReserve.toString().padRight(3)}, Ready: ${table.isReady.toString().padRight(3)}");
         });
+
         choice = int.parse(stdin.readLineSync().toString());
-        if (!(choice < table.length && choice >= 0)) {
-          print('please enter a right number!');
+        if (!(choice < table.length &&
+            choice >= 0 &&
+            table[choice - 1].isReserve == false &&
+            table[choice - 1].isReady == true)) {
+          print('⚠️ Please enter a right number!');
         } else {
           isSuccess = true;
           do {
-            print("How many of your member?!");
+            print(" How many member do you have?!");
             try {
               numberofGuest = int.parse(stdin.readLineSync().toString());
             } catch (e) {
               print('\x1B[2J\x1B[0;0H');
-              print("you enter invalid number, please try AGAIN");
+              print("❌ Invalid number, please try AGAIN!!");
             }
           } while (!(numberofGuest >= 1));
           print("You have choose: Table [${choice}]\n");
@@ -312,7 +322,6 @@ class Kiosk {
           print(currentReservation);
           stdout.write('Press enter to continue choosing your food...');
           stdin.readLineSync();
-          stdout.close();
         }
       } catch (e) {
         _printErrorMessage();
@@ -326,14 +335,12 @@ class Kiosk {
     const String reset = '\x1B[0m'; // Reset color
     int i = 0;
 
-    Timer.periodic(Duration(milliseconds: 200), (Timer timer) {
+    await Timer.periodic(Duration(milliseconds: 200), (Timer timer) {
       if (i >= 15) {
         timer.cancel();
-        stdout.write('\r\n done!\n'); // Move to new line when done
+        stdout.write('\r\n✅ Done!\n'); // Move to new line when done
       } else {
-        // Print the icon in cyan color
-        stdout.write(
-            '\r ${cyan}${spinner[i % spinner.length]} $message$reset'); // Clear line and rewrite
+        stdout.write('\r ${cyan}${spinner[i % spinner.length]} $message$reset');
         i++;
       }
     });

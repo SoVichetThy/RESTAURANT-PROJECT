@@ -1,5 +1,5 @@
-import 'food_category.dart';
-import 'menu.dart';
+import 'enum/food_category.dart';
+import 'model/menu.dart';
 
 List<Menu> foodItems = [
   Menu(
